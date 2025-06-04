@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader
 def parse_args():
     parser = argparse.ArgumentParser(description="Evaluate a trained MACBF-Torch model.")
     parser.add_argument('--model_path', type=str, required=True, help='Path to the trained model .pth file.')
-    parser.add_argument('--eval_dir', type=str, required=True, help='Directory containing evaluation scenes.')
+    parser.add_argument('--eval_dirs', nargs='+', type=str, required=True, help='Directory containing evaluation scenes.')
     parser.add_argument('--output_dir', type=str, default='evaluated_scenes', help='Base directory to save the output scenes.')
     parser.add_argument('--gpu', type=str, default='0', help='GPU ID to use (e.g., "0", "1"). Use "-1" for CPU.')
     parser.add_argument('--show_plots', action='store_true', help='Show trajectory plots after generating each scene.')
@@ -51,20 +51,19 @@ def main():
     # cbf_net.eval()
 
     # --- Process a single evaluation directory ---
-    if not os.path.isdir(args.eval_dir):
-        print(f"Error: Evaluation directory {args.eval_dir} does not exist or is not a directory.")
-        return
+    # if not os.path.isdir(args.eval_dir):
+    #     print(f"Error: Evaluation directory {args.eval_dir} does not exist or is not a directory.")
+    #     return
 
-    # Create a Scene object directly for the single eval_dir
+    # Create a Scene object directly from list of eval_dirs
     try:
         # SceneDataset expects a list of paths
-        eval_dataset = SceneDataset([args.eval_dir])
+        eval_dataset = SceneDataset(args.eval_dirs)
         if len(eval_dataset) == 0:
-            print(f"No valid scene data loaded from {args.eval_dir}. Exiting.")
+            print(f"No valid scene data loaded from {args.eval_dirs}. Exiting.")
             return
-        # SceneDataset([args.eval_dir]) should yield one item.
     except RuntimeError as e:
-        print(f"Error initializing SceneDataset for {args.eval_dir}: {e}")
+        print(f"Error initializing SceneDataset for {args.eval_dirs}: {e}")
         return
 
     eval_loader = DataLoader(
@@ -74,24 +73,21 @@ def main():
         num_workers=0
     )
     
-    # Get the base name of the evaluation directory for naming output
-    original_scene_dir_name = os.path.basename(os.path.normpath(args.eval_dir))
-    
-    # Create a subdirectory within args.output_dir for this specific evaluation run
-    current_eval_output_base_dir = os.path.join(args.output_dir, f"{original_scene_dir_name}_evaluated")
-    os.makedirs(current_eval_output_base_dir, exist_ok=True)
-    print(f"Output for {original_scene_dir_name} will be saved in: {current_eval_output_base_dir}")
-
     overall_avg_safety_rates = [] 
     overall_final_distances_to_ref = []
 
     # For now, I've set up the script to just run once.
-    for scene_idx, original_scene_data_batch in enumerate(eval_loader):
+    for scene_idx, (scene_name, original_scene_data_batch) in enumerate(eval_loader):
         original_scene_data = original_scene_data_batch.squeeze(0).to(device)
         num_timesteps_original = original_scene_data.shape[0]
         num_agents_original = original_scene_data.shape[1]
 
-        print(f"\n--- Evaluating Scene from {args.eval_dir} (Original T={num_timesteps_original}, N={num_agents_original}) ---")
+        print(f"\n--- Evaluating Scene from {args.eval_dirs} Scene Name: {scene_name[0]} (Original T={num_timesteps_original}, N={num_agents_original}) ---")
+
+        # Create a subdirectory within args.output_dir for this specific evaluation run
+        current_eval_output_base_dir = os.path.join(args.output_dir, f"{scene_name[0]}_evaluated")
+        os.makedirs(current_eval_output_base_dir, exist_ok=True)
+        print(f"Output for {scene_name[0]} will be saved in: {current_eval_output_base_dir}")
 
         current_state_eval = original_scene_data[0, :, :].clone()
         simulated_trajectory_list = [current_state_eval.clone().cpu().numpy()]
@@ -150,7 +146,7 @@ def main():
             if args.save_plots:
                 plot_filename = os.path.join(current_eval_output_base_dir, f"simulated_trajectory_plot.png")
             
-            print(f"  Visualizing simulated scene from {args.eval_dir}...")
+            print(f"  Visualizing simulated scene from {scene_name[0]}...")
             output_scene_obj.visualize_scene(output_path=plot_filename, show_plot=args.show_plots)
 
 
@@ -164,10 +160,7 @@ def main():
 if __name__ == '__main__':
     main()
 
-# python eval.py \
-#     --model_path ../models/model_iter_XXXX.pth \
-#     --eval_dirs ../data/some_eval_scene_dir_0 ../data/some_eval_scene_dir_1 \
-#     --output_dir evaluated_trajectories \
-#     --gpu 0 \
-#     --save_plots \
-#     # --show_plots # Uncomment if you want to see plots interactively
+# python3 eval.py --model_path ../models/20250603_152049_run/model_iter_0.pth \ 
+    # --eval_dir ../data/three_agents_obs_track_easy_forest_0/ \ 
+    # --output_dir ../eval \ 
+    # --show_plots --save_plots
