@@ -20,6 +20,15 @@ training_scenes = [
     "../data/three_agents_obs_track_easy_forest_five_random",
     "../data/three_agents_obs_track_easy_forest_five_random_small",
     "../data/three_agents_obs_track_easy_forest_three_random_small",
+    "../data/three_agents_obs_track_forest3_no_dyn",
+    "../data/three_agents_obs_track_forest3_no_dyn_0",
+    "../data/three_agents_obs_track_forest3_no_dyn_1",
+    "../data/three_agents_obs_track_forest3_no_dyn_eight_random",
+    "../data/three_agents_obs_track_forest3_no_dyn_eight_random_1",
+    "../data/three_agents_obs_track_forest3_no_dyn_five_random",
+    "../data/three_agents_obs_track_forest3_no_dyn_three_random",
+    "../data/three_agents_obs_track_forest3_w_dyn",
+    "../data/three_agents_obs_track_forest3_w_dyn_1",
 ]
 
 dataset = SceneDataset(training_scenes)
