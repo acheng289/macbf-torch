@@ -71,8 +71,8 @@ start_time_overall = time.time()
 for train_step in range(config.TRAIN_STEPS):
     print(f"--- Train Step: {train_step + 1}/{config.TRAIN_STEPS} ---")
     # Grab scene from dataloader
-    for batch_idx, current_scene in enumerate(train_loader):
-        print(f"  Processing Scene: {batch_idx + 1}/{len(train_loader)} in Train Step {train_step + 1}") # Added print
+    for batch_idx, (current_scene_name, current_scene) in enumerate(train_loader):
+        print(f"  Processing Scene: {current_scene_name[0]} {batch_idx + 1}/{len(train_loader)} in Train Step {train_step + 1}") # Added print
         # Remove batch dimension and put on device
         current_scene = current_scene.squeeze(0) # (TxNxS)
         # Get timesteps

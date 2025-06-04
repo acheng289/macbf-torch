@@ -244,7 +244,10 @@ class SceneDataset(Dataset):
             # Convert to Tensor
             full_states_tensor = torch.tensor(full_states_np, dtype=torch.float32)
 
-            self.scenes.append(full_states_tensor)
+            # Get scene name
+            scene_name = scene.get_scene_name()
+
+            self.scenes.append((scene_name, full_states_tensor))
         
         self.num_scenes = len(self.scenes)
     
@@ -257,6 +260,6 @@ class SceneDataset(Dataset):
     
     def __getitem__(self, idx):
         """
-        Retrieves trajectory data for a single scene
+        Retrieves trajectory data for a single scene. Now also includes scene_name
         """
         return self.scenes[idx]
