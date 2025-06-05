@@ -105,7 +105,7 @@ def main():
                 simulated_trajectory_list.append(current_state_eval.clone().cpu().numpy())
 
                 with torch.no_grad():
-                    dang_mask = core.compute_dangerous_mask_pytorch(current_state_eval, config.DIST_MIN_CHECK)
+                    dang_mask = core.compute_dangerous_mask_pytorch(current_state_eval, config.DIST_MIN_THRES)
                     if num_agents_original > 1:
                         per_agent_danger = torch.sum(dang_mask, dim=1)
                         is_agent_safe = (per_agent_danger == 0).float()
