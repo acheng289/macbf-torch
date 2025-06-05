@@ -32,7 +32,7 @@ def main():
 
     # Instantiate networks
     action_net = core.NetworkAction()
-    # cbf_net = core.NetworkCBF() # CBF net might not be directly used
+    cbf_net = core.NetworkCBF()
 
     # Load checkpoint
     if not os.path.exists(args.model_path):
@@ -42,13 +42,13 @@ def main():
     print(f"Loading model from {args.model_path}")
     checkpoint = torch.load(args.model_path, map_location=device)
     action_net.load_state_dict(checkpoint['action_net_state_dict'])
-    # cbf_net.load_state_dict(checkpoint['cbf_net_state_dict'])
+    cbf_net.load_state_dict(checkpoint['cbf_net_state_dict'])
 
     action_net.to(device)
-    # cbf_net.to(device)
+    cbf_net.to(device)
 
     action_net.eval()
-    # cbf_net.eval()
+    cbf_net.eval()
 
     # --- Process a single evaluation directory ---
     # if not os.path.isdir(args.eval_dir):
@@ -98,6 +98,9 @@ def main():
             for _ in range(config.INNER_LOOPS_EVAL):
                 with torch.no_grad():
                     action = action_net(current_state_eval, reference_state_eval)
+
+                # Internal loop to refine initial action to ensure safety
+                action = core.refine_action(action, current_state_eval, cbf_net)
 
                 # Simulate movement and append next state to trajectory list 
                 dsdt = action

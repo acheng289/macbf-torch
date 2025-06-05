@@ -391,3 +391,92 @@ def loss_derivatives_pytorch(s, u, h, model_CBF, eps=[8e-2, 0, 3e-2]):
     loss_medium_deriv = torch.relu(-medium_deriv + eps[2]).sum() / (1e-5 + num_medium)
 
     return loss_dang_deriv, loss_safe_deriv, loss_medium_deriv
+
+def is_all_safe(s):
+    safe_mask = compute_safe_mask_pytorch(s, r=config.DIST_SAFE)  # (N, N) boolean
+    all_safe = safe_mask.flatten().all()  # Check if all agents are safe
+    return all_safe.item()  # Convert to Python boolean for easier checks
+
+def refine_action(u_nominal, s, model_CBF):
+    """
+    Iterative refinement of the nominal action to ensure safety,
+    using the Control Barrier Function (CBF) conditions.
+
+    Args:
+        u_nominal (torch.Tensor): The initial action to refine (N, S_dim).
+        s (torch.Tensor): The current state of N agents (N, S_dim).
+        model_CBF (nn.Module): The control barrier function model.
+
+    Returns:
+        u_refined (torch.Tensor): The refined action that satisfies the CBF constraints (N, S_dim).
+    """
+    # print("Refining action...")
+    device = s.device 
+
+    # Initialize u_res (delta u) as a learnable tensor for gradient updates
+    u_res = torch.zeros_like(u_nominal, requires_grad=True, device=device)
+
+    # Calculate initial h and its mask (from current state s)
+    x_curr = s.unsqueeze(1) - s.unsqueeze(0) # (N, N, S_dim)
+    h_initial, mask_cbf_initial = model_CBF(x_curr, r=config.DIST_MIN_THRES) # h_initial (N, N, 1), mask_cbf_initial (N, N, 1)
+
+    # Check if the initial state s is completely safe
+    initial_all_safe = is_all_safe(s) 
+
+    if initial_all_safe:
+        # print("Action is safe, no refinement needed")
+        # If already safe, no refinement needed, return nominal action
+        return u_nominal.clone().detach() # Return a detached copy to avoid unwanted grad tracking
+
+    # Iterative refinement loop
+    for loop_count in range(config.REFINE_LOOPS):
+        # Compute the action being evaluated in this iteration
+        u_evaluated = u_nominal + u_res
+
+        # Compute s_next under u_evaluated
+        dsdt = u_evaluated
+        s_next = s + dsdt * config.TIME_STEP_EVAL # (N, S_dim)
+        
+        x_next = s_next.unsqueeze(1) - s_next.unsqueeze(0) # (N, N, S_dim)
+        
+        # Calculate h_next and its mask from the next state
+        h_next, mask_cbf_next = model_CBF(x_next, r=config.DIST_MIN_THRES) # (N, N, 1), (N, N, 1)
+        
+        # Calculate the CBF derivative term: deriv = h_next - h + alpha * dt * h
+        deriv = h_next - h_initial + config.TIME_STEP_EVAL * config.ALPHA_CBF * h_initial # (N, N, 1)
+
+        # Apply masks from initial and next CBF evaluations
+        # This filters which pairwise interactions contribute to the error
+        combined_mask_for_deriv = (mask_cbf_initial & mask_cbf_next).float() # (N, N, 1)
+        deriv_masked = deriv * combined_mask_for_deriv # (N, N, 1)
+        
+        # Compute error: violation of deriv >= 0 condition (max(-deriv, 0))
+        # Sum over the pairwise dimension to get error per agent
+        error_per_agent = torch.relu(-deriv_masked).sum(dim=1) # (N, 1) error per agent
+        
+        # Zero out gradients for u_res from the previous iteration
+        if u_res.grad is not None:
+            u_res.grad.zero_()
+            
+        # Compute gradients of the total error with respect to u_res
+        total_error_for_grad = error_per_agent.sum() # Sum errors across all agents to get a scalar
+        total_error_for_grad.backward() # Computes gradients
+
+        # Update u_res using its gradient via gradient descent
+        with torch.no_grad(): # Perform update without tracking gradients for this step
+            u_res.sub_(config.REFINE_LEARNING_RATE * u_res.grad) # u_res -= lr * grad
+
+            # Safety loop exit condition
+            u_current_check = u_nominal + u_res
+            dsdt_check = u_current_check
+            s_next_check = s + dsdt_check * config.TIME_STEP_EVAL
+
+            # Check if the potential new state is safe
+            if is_all_safe(s_next_check):
+                break
+            
+    # After the loop finishes (either max iterations reached or safety achieved), return the refined action
+    u_refined = u_nominal + u_res
+    print("Action was refined!")
+    return u_refined.detach() # Detach to stop tracking gradients beyond this point
+
