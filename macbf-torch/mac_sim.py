@@ -14,6 +14,12 @@ from scipy.spatial.transform import Rotation as R
 import config
 
 class MACSimNode(Node):
+    """
+    A ROS 2 node that simulates the MACBF-Torch model for a single agent in a multi-agent system.
+    This node initializes the state of the agent, subscribes to goals and other agents' states,
+    and publishes the agent's state at a fixed rate. It uses a neural network model to compute
+    the agent's action based on the current state and the reference state derived from the goal.
+    """
     def __init__(self):
         super().__init__('mac_sim_node')
 
