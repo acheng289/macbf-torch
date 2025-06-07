@@ -6,8 +6,10 @@ from tqdm import tqdm
 
 import core
 import config
-from scene import Scene, SceneDataset # Assuming Scene can now give its name
+from scene import Scene, SceneDataset 
 from torch.utils.data import DataLoader
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Evaluate a trained MACBF-Torch model.")
@@ -17,6 +19,7 @@ def parse_args():
     parser.add_argument('--gpu', type=str, default='0', help='GPU ID to use (e.g., "0", "1"). Use "-1" for CPU.')
     parser.add_argument('--show_plots', action='store_true', help='Show trajectory plots after generating each scene.')
     parser.add_argument('--save_plots', action='store_true', help='Save trajectory plots.')
+    parser.add_argument('--vis', action='store_true', help='Visualize and compare the simulated scenes')
     args = parser.parse_args()
     return args
 
@@ -76,11 +79,13 @@ def main():
     overall_avg_safety_rates = [] 
     overall_final_distances_to_ref = []
 
-    # For now, I've set up the script to just run once.
     for scene_idx, (scene_name, original_scene_data_batch) in enumerate(eval_loader):
         original_scene_data = original_scene_data_batch.squeeze(0).to(device)
         num_timesteps_original = original_scene_data.shape[0]
         num_agents_original = original_scene_data.shape[1]
+
+        safety_macbf = []
+        safety_baseline = []
 
         print(f"\n--- Evaluating Scene from {args.eval_dirs} Scene Name: {scene_name[0]} (Original T={num_timesteps_original}, N={num_agents_original}) ---")
 
@@ -116,12 +121,93 @@ def main():
                     else:
                         safety_ratio_step = 1.0
                     scene_safety_ratios.append(safety_ratio_step)
+                    safety_macbf.append(is_agent_safe.cpu().numpy())
 
                 with torch.no_grad():
                     dist_to_ref = torch.linalg.norm(current_state_eval[:, :3] - reference_state_eval[:, :3], dim=1)
                     # Move to next reference state if all agents are close enough
                     if torch.mean(dist_to_ref) < config.DIST_TOLERATE:
                         break
+
+        # Repeat the loop but with just the controller
+        baseline_safety_ratios = []
+        current_state_eval = original_scene_data[0, :, :].clone()
+        simulated_trajectory_list_baseline = [current_state_eval.clone().cpu().numpy()]
+        for t_ref_idx in tqdm(range(1, num_timesteps_original), desc="  Simulating to reference waypoints (baseline)"):
+            reference_state_eval = original_scene_data[t_ref_idx, :, :].clone()
+            for _ in range(config.INNER_LOOPS_EVAL):
+                dsdt = core.quadrotor_controller_pytorch(current_state_eval, reference_state_eval)
+                current_state_eval = current_state_eval + dsdt * config.TIME_STEP_EVAL
+                simulated_trajectory_list_baseline.append(current_state_eval.clone().cpu().numpy())
+
+                # Compute safety ratio for the baseline controller
+                with torch.no_grad():
+                    dang_mask = core.compute_dangerous_mask_pytorch(current_state_eval, config.DIST_MIN_THRES)
+                    if num_agents_original > 1:
+                        per_agent_danger = torch.sum(dang_mask, dim=1)
+                        is_agent_safe = (per_agent_danger == 0).float()
+                        safety_ratio_step = torch.mean(is_agent_safe).item()
+                    else:
+                        safety_ratio_step = 1.0
+                    safety_baseline.append(is_agent_safe.cpu().numpy())
+                    baseline_safety_ratios.append(safety_ratio_step)
+
+        # Visualize the trajectories in motion
+        if args.vis:
+            # Hopefully this does not break
+            plt.ion()
+            plt.close()
+            fig = plt.figure(figsize=(10, 7))
+            plt.clf()
+            ax_1 = fig.add_subplot(121, projection='3d')
+            ax_2 = fig.add_subplot(122, projection='3d')
+            for i in range(0, max(len(simulated_trajectory_list), len(simulated_trajectory_list_baseline)), 10):
+                ax_1.clear()
+                ax_1.view_init(elev=80, azim=-45)
+                ax_1.axis('off')
+                i_macbf = min(i, len(simulated_trajectory_list) - 1)
+                current_states_macbf = simulated_trajectory_list[i_macbf]
+                safety = safety_macbf[i_macbf] 
+                ax_1.scatter(
+                    current_states_macbf[:, 0], 
+                    current_states_macbf[:, 1], 
+                    current_states_macbf[:, 2], 
+                    color='darkorange', label='Agent'   
+                )
+                ax_1.scatter(
+                    current_states_macbf[safety <1, 0],
+                    current_states_macbf[safety <1, 1],
+                    current_states_macbf[safety <1, 2],
+                    color='red', label='Collision'
+                )
+
+                ax_1.set_title('MACBF-Torch: Safety Rate = {:.4f}'.format(
+                    np.mean(scene_safety_ratios)), fontsize=16)
+                
+                ax_2.clear()
+                ax_2.view_init(elev=80, azim=-45)
+                ax_2.axis('off')
+                i_baseline = min(i, len(simulated_trajectory_list_baseline) - 1)
+                current_states_baseline = simulated_trajectory_list_baseline[i_baseline]
+                safety = safety_baseline[i_baseline]
+                ax_2.scatter(
+                    current_states_baseline[:, 0], 
+                    current_states_baseline[:, 1], 
+                    current_states_baseline[:, 2], 
+                    color='darkorange', label='Agent'   
+                )
+                ax_2.scatter(
+                    current_states_baseline[safety <1, 0],
+                    current_states_baseline[safety <1, 1],
+                    current_states_baseline[safety <1, 2],
+                    color='red', label='Collision'
+                )
+                ax_2.set_title('Baseline Controller: Safety Rate = {:.4f}'.format(
+                    np.mean(baseline_safety_ratios)), fontsize=16)
+                
+                fig.canvas.draw()
+                plt.pause(0.1)
+                
         
         simulated_states_np = np.array(simulated_trajectory_list)
         print(f"  Generated simulated trajectory of shape: {simulated_states_np.shape}")
