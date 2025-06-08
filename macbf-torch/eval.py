@@ -214,15 +214,19 @@ def main():
 
         if scene_safety_ratios:
             avg_scene_safety = np.mean(scene_safety_ratios)
+            avg_scene_safety_baseline = np.mean(baseline_safety_ratios)
             overall_avg_safety_rates.append(avg_scene_safety) # For this one scene
-            print(f"  Average Safety Rate for this scene (simulated): {avg_scene_safety:.3f}")
+            print(f"  Average Safety Rates for scene {scene_name} model | baseline: {avg_scene_safety:.3f} | {avg_scene_safety_baseline:.3f}")
         
         with torch.no_grad():
             final_ref_state = original_scene_data[-1, :, :].clone()
             final_sim_state = torch.tensor(simulated_states_np[-1], device=device, dtype=torch.float32)
             final_dist = torch.mean(torch.linalg.norm(final_sim_state[:,:3] - final_ref_state[:,:3], dim=1)).item()
+
+            final_sim_state_baseline = torch.tensor(simulated_trajectory_list_baseline[-1], device=device, dtype=torch.float32)
+            final_dist_baseline = torch.mean(torch.linalg.norm(final_sim_state_baseline[:, :3] - final_ref_state[:, :3], dim=1)).item()
             overall_final_distances_to_ref.append(final_dist) 
-            print(f"  Distance to final reference state: {final_dist:.3f}")
+            print(f"  Distance to final reference state for scene {scene_name} model | baseline: {final_dist:.3f} | {final_dist_baseline:.3f}")
 
         # Create a new Scene object from the simulated trajectory
         output_scene_obj = Scene(states=simulated_states_np)
