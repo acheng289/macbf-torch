@@ -183,7 +183,7 @@ class MACSimNode(Node):
                 msg.quat.z,
                 msg.quat.w
             ], dtype=np.float32)
-            self.get_logger().info(f'Updated state for agent {agent_index}: {msg}')
+            # self.get_logger().info(f'Updated state for agent {agent_index}: {msg}')
         
         return agent_state_callback
     
@@ -240,12 +240,12 @@ class MACSimNode(Node):
             action = self.action_net(state_matrix_tensor, ref_state_tensor)
         
         # Compute the next state based on the action
-        dsdt = action.cpu().numpy()
-        next_state_vector = self.state_matrix[0] + dsdt * config.TIME_STEP
+        dsdt = action.cpu().numpy() # Recall that dsdt is (Nx10)
+        next_state_matrix = self.state_matrix + dsdt * config.TIME_STEP
         # self.get_logger().info(f'Computed next state vector: {next_state_vector}')
 
         # Update the state matrix with the new state
-        self.state_matrix[0] = next_state_vector
+        self.state_matrix[0] = next_state_matrix[0]
 
         # Publishing of new state handled by timer
 
