@@ -217,6 +217,7 @@ class MACSimNode(Node):
         self.state.quat.y = current_state_vector[7].item()
         self.state.quat.z = current_state_vector[8].item()
         self.state.quat.w = current_state_vector[9].item()
+        self.state.header.stamp = self.get_clock().now()
         # self.get_logger().info(f'Publishing state: {self.state}')
         self.state_publisher.publish(self.state)
 
