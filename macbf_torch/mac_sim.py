@@ -14,7 +14,7 @@ import numpy as np
 from scipy.spatial.transform import Rotation as R
 from gazebo_msgs.srv import SetEntityState
 from geometry_msgs.msg import TransformStamped
-from tf2_ros import TransformBroadcaster, Bu
+from tf2_ros import TransformBroadcaster
 
 class MACSimNode(Node):
     """
