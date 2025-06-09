@@ -45,6 +45,7 @@ class MACSimNode(Node):
 
         # Initialize state matrix
         self.state = State()
+        self.state.header.frame_id = "map"
         self.state.pos.x = float(self.start_pose[0])
         self.state.pos.y = float(self.start_pose[1])
         self.state.pos.z = float(self.start_pose[2])
