@@ -204,16 +204,16 @@ class MACSimNode(Node):
 
     def publish_state(self):
         current_state_vector = self.state_matrix[0]
-        self.state.pos.x = current_state_vector[0]
-        self.state.pos.y = current_state_vector[1]
-        self.state.pos.z = current_state_vector[2]
-        self.state.vel.x = current_state_vector[3]
-        self.state.vel.y = current_state_vector[4]
-        self.state.vel.z = current_state_vector[5]
-        self.state.quat.x = current_state_vector[6]
-        self.state.quat.y = current_state_vector[7]
-        self.state.quat.z = current_state_vector[8]
-        self.state.quat.w = current_state_vector[9]
+        self.state.pos.x = current_state_vector[0].item()
+        self.state.pos.y = current_state_vector[1].item()
+        self.state.pos.z = current_state_vector[2].item()
+        self.state.vel.x = current_state_vector[3].item()
+        self.state.vel.y = current_state_vector[4].item()
+        self.state.vel.z = current_state_vector[5].item()
+        self.state.quat.x = current_state_vector[6].item()
+        self.state.quat.y = current_state_vector[7].item()
+        self.state.quat.z = current_state_vector[8].item()
+        self.state.quat.w = current_state_vector[9].item()
         self.get_logger().info(f'Publishing state: {self.state}')
         self.state_publisher.publish(self.state)
 
