@@ -12,6 +12,7 @@ from pathlib import Path
 import torch
 import numpy as np
 from scipy.spatial.transform import Rotation as R
+from gazebo_msgs.srv import SetEntityState
 
 class MACSimNode(Node):
     """
@@ -121,7 +122,23 @@ class MACSimNode(Node):
                     ) # Documentation says that this is actually the default QoS
                 )
         
+        self.gazebo_client = self.create_client(SetEntityState, "/plug/set_entity_state")
+        self.get_logger().info(f"Gazebo client initialized")
+        
         self.get_logger().info(f'MACSimNode for {self.self_agent} initialized')
+    
+    def send_gazebo_state(self):
+        request = SetEntityState.Request()
+
+        request.state.pose.position.x = self.state.pos.x
+        request.state.pose.position.y = self.state.pos.y
+        request.state.pose.position.z = self.state.pos.z
+        request.state.pose.orientation.x = self.state.quat.x
+        request.state.pose.orientation.y = self.state.quat.y
+        request.state.pose.orientation.z = self.state.quat.z
+        request.state.pose.orientation.w = self.state.quat.w
+
+        future = self.gazebo_client.call_async(request)
 
     # On state callback, update the state matrix    
     def create_agent_state_callback(self, agent_index):
@@ -220,6 +237,7 @@ class MACSimNode(Node):
         self.state.header.stamp = self.get_clock().now()
         # self.get_logger().info(f'Publishing state: {self.state}')
         self.state_publisher.publish(self.state)
+        self.send_gazebo_state()
 
 def main(args=None):
     rclpy.init(args=args)
