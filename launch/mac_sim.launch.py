@@ -47,8 +47,8 @@ def generate_launch_description():
     ])
 
 # ros2 launch macbf_torch mac_sim.launch.py \
-#     start_yaw:=45.0 \
 #     start_pose:="[1.0, 2.0, 3.0]" \
-#     all_agents:="['NX01', 'NX02']" \
+#     all_agents:="['NX01', 'NX02', 'NX03']" \
+#     start_yaw:=45.0 \
 #     self_agent:=NX01 \
-#     model_weight_file:=your_model.pth
+#     model_weight_file:=my_other_model.pth

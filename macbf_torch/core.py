@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import config
+import macbf_torch.config as config
 
 
 def quadrotor_controller_pytorch(s, s_ref):

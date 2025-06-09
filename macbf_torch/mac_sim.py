@@ -2,16 +2,16 @@ import rclpy
 import rclpy.executors
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy
+import macbf_torch.core as core
+import macbf_torch.config as config
 from rclpy.callback_groups import ReentrantCallbackGroup, MutuallyExclusiveCallbackGroup
 from dynus_interfaces.msg import State, Goal
-import core
 from ament_index_python import get_package_share_directory
 import os
 from pathlib import Path
 import torch
 import numpy as np
 from scipy.spatial.transform import Rotation as R
-import config
 
 class MACSimNode(Node):
     """
