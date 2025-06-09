@@ -98,9 +98,11 @@ class MACSimNode(Node):
             durability=DurabilityPolicy.VOLATILE,
             depth=10
         ))
+        self.get_logger().info(f"Publishing state at /{self.self_agent}/state")
 
         # Subscribe to own goal
         self.goal_subscriber = self.create_subscription(Goal, f'/{self.self_agent}/goal', self.goal_callback, 10)
+        self.get_logger().info(f"Goal subscription at /{self.self_agent}/goal")
 
         # Subscribe to other agents' states
         agent_index = 0
@@ -214,7 +216,7 @@ class MACSimNode(Node):
         self.state.quat.y = current_state_vector[7].item()
         self.state.quat.z = current_state_vector[8].item()
         self.state.quat.w = current_state_vector[9].item()
-        self.get_logger().info(f'Publishing state: {self.state}')
+        # self.get_logger().info(f'Publishing state: {self.state}')
         self.state_publisher.publish(self.state)
 
 def main(args=None):
