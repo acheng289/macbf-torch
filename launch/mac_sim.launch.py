@@ -3,14 +3,14 @@
 from launch import LaunchDescription
 from launch_ros.actions import Node
 from launch.actions import DeclareLaunchArgument
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import LaunchConfiguration, PythonExpression
 
 def generate_launch_description():
     return LaunchDescription([
         # Launch argument declarations
         DeclareLaunchArgument(
             'start_pose',
-            default_value=['0.0', '0.0', '0.0'],
+            default_value='[0.0, 0.0, 0.0]',
             description="Initial pose of self agent"
         ),
         DeclareLaunchArgument(
@@ -37,9 +37,9 @@ def generate_launch_description():
             package="macbf_torch",
             executable="mac_sim",
             parameters=[{
-                'start_pose': [float(x) for x in LaunchConfiguration('start_pose')],
+                'start_pose': PythonExpression(LaunchConfiguration('start_pose')),
                 'start_yaw': LaunchConfiguration('start_yaw'),
-                'all_agents': LaunchConfiguration('all_agents'),
+                'all_agents': PythonExpression(LaunchConfiguration('all_agents')),
                 'self_agent': LaunchConfiguration('self_agent'),
                 'model_weight_file': LaunchConfiguration('model_weight_file')
             }]
