@@ -45,9 +45,9 @@ class MACSimNode(Node):
 
         # Initialize state matrix
         self.state = State()
-        self.state.pos.x = self.start_pose[0]
-        self.state.pos.y = self.start_pose[1]
-        self.state.pos.z = self.start_pose[2]
+        self.state.pos.x = float(self.start_pose[0])
+        self.state.pos.y = float(self.start_pose[1])
+        self.state.pos.z = float(self.start_pose[2])
         roll, pitch = 0.0, 0.0
         # Returns in the order x, y, z, w
         rotQuat = R.from_euler('xyz', [roll, pitch, self.start_yaw], degrees=True).as_quat()
