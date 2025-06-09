@@ -13,6 +13,8 @@ import torch
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 from gazebo_msgs.srv import SetEntityState
+from geometry_msgs.msg import TransformStamped
+from tf2_ros import TransformBroadcaster, Bu
 
 class MACSimNode(Node):
     """
@@ -124,6 +126,19 @@ class MACSimNode(Node):
         
         self.gazebo_client = self.create_client(SetEntityState, "/plug/set_entity_state")
         self.get_logger().info(f"Gazebo client initialized")
+
+        self.transform = TransformStamped()
+        self.transform.header.frame_id = "map"
+        self.transform.child_frame_id = self.self_agent + "/base_link"
+        self.broadcaster = TransformBroadcaster(
+            self,
+            QoSProfile(
+                reliability=ReliabilityPolicy.RELIABLE,
+                durability=DurabilityPolicy.VOLATILE,
+                depth=10
+            )
+        )
+        self.get_logger().info("Transform broadcaster initialized")
         
         self.get_logger().info(f'MACSimNode for {self.self_agent} initialized')
     
@@ -140,6 +155,16 @@ class MACSimNode(Node):
         request.state.pose.orientation.w = self.state.quat.w
 
         future = self.gazebo_client.call_async(request)
+
+        self.transform.header.stamp = self.get_clock().now().to_msg()
+        self.transform.transform.translation.x = self.state.pos.x
+        self.transform.transform.translation.y = self.state.pos.y
+        self.transform.transform.translation.z = self.state.pos.z
+        self.transform.transform.rotation.x = self.state.quat.x
+        self.transform.transform.rotation.y = self.state.quat.y
+        self.transform.transform.rotation.z = self.state.quat.z
+        self.transform.transform.rotation.w = self.state.quat.w
+        self.broadcaster.sendTransform(self.transform)
 
     # On state callback, update the state matrix    
     def create_agent_state_callback(self, agent_index):
