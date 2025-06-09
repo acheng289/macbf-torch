@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 import os
 import glob
 
-package_name = 'macbf-torch'
+package_name = 'macbf_torch'
 
 setup(
     name=package_name,
@@ -27,7 +27,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'mac_sim = macbf-torch.mac_sim:main',
+            'mac_sim = macbf_torch.mac_sim:main',
         ],
     },
 )

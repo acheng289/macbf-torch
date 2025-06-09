@@ -34,7 +34,7 @@ def generate_launch_description():
             description="Name of model weight file"
         ),
         Node(
-            package="macbf-torch",
+            package="macbf_torch",
             executable="mac_sim",
             parameters=[{
                 'start_pose': [float(x) for x in LaunchConfiguration('start_pose')],
