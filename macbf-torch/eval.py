@@ -152,6 +152,13 @@ def main():
                     safety_baseline.append(is_agent_safe.cpu().numpy())
                     baseline_safety_ratios.append(safety_ratio_step)
 
+                    dist_to_ref = torch.linalg.norm(current_state_eval[:, :3] - reference_state_eval[:, :3], dim=1)
+                    # Move to next reference state if all agents are close enough
+                    if torch.mean(dist_to_ref) < config.DIST_TOLERATE:
+                        break
+
+        
+        simulated_states_np = np.array(simulated_trajectory_list)
         # Visualize the trajectories in motion
         if args.vis:
             # Hopefully this does not break
@@ -161,11 +168,16 @@ def main():
             plt.clf()
             ax_1 = fig.add_subplot(121, projection='3d')
             ax_2 = fig.add_subplot(122, projection='3d')
+
+            min_x, max_x = np.min(simulated_states_np[:, :, 0]), np.max(simulated_states_np[:, :, 0])
+            min_y, max_y = np.min(simulated_states_np[:, :, 1]), np.max(simulated_states_np[:, :, 1])
+            min_z, max_z = np.min(simulated_states_np[:, :, 2]), np.max(simulated_states_np[:, :, 2])
+
             for i in range(0, max(len(simulated_trajectory_list), len(simulated_trajectory_list_baseline)), 10):
                 ax_1.clear()
-                ax_1.view_init(elev=80, azim=-45)
-                ax_1.axis('off')
-                i_macbf = min(i, len(simulated_trajectory_list) - 1)
+                ax_1.view_init(elev=30, azim=-45)
+                # ax_1.axis('off')
+                i_macbf = min(i, len(simulated_trajectory_list) - 2)
                 current_states_macbf = simulated_trajectory_list[i_macbf]
                 safety = safety_macbf[i_macbf] 
                 ax_1.scatter(
@@ -184,10 +196,14 @@ def main():
                 ax_1.set_title('MACBF-Torch: Safety Rate = {:.4f}'.format(
                     np.mean(scene_safety_ratios)), fontsize=16)
                 
+                ax_1.set_xlim(np.floor(min_x), np.ceil(max_x))
+                ax_1.set_ylim(np.floor(min_y), np.ceil(max_y))
+                ax_1.set_zlim(np.floor(min_z), np.ceil(max_z))
+                
                 ax_2.clear()
-                ax_2.view_init(elev=80, azim=-45)
-                ax_2.axis('off')
-                i_baseline = min(i, len(simulated_trajectory_list_baseline) - 1)
+                ax_2.view_init(elev=30, azim=-45)
+                # ax_2.axis('off')
+                i_baseline = min(i, len(simulated_trajectory_list_baseline) - 2)
                 current_states_baseline = simulated_trajectory_list_baseline[i_baseline]
                 safety = safety_baseline[i_baseline]
                 ax_2.scatter(
@@ -204,6 +220,13 @@ def main():
                 )
                 ax_2.set_title('Baseline Controller: Safety Rate = {:.4f}'.format(
                     np.mean(baseline_safety_ratios)), fontsize=16)
+
+                ax_2.set_xlim(np.floor(min_x), np.ceil(max_x))
+                ax_2.set_ylim(np.floor(min_y), np.ceil(max_y))
+                ax_2.set_zlim(np.floor(min_z), np.ceil(max_z))
+
+                
+                plt.legend(loc='lower right')
                 
                 fig.canvas.draw()
                 plt.pause(0.1)
