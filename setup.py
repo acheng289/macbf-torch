@@ -23,7 +23,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'mac_sim = macbf_torch.mac_sim:main',
+            'mac_sim = macbf-torch.mac_sim:main',
         ],
     },
 )
