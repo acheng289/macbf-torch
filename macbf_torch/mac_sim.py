@@ -88,6 +88,7 @@ class MACSimNode(Node):
         ).as_posix()
         self.get_logger().info(f'Using model weight file: {self.model_weight}')
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.get_logger().info(f"Using {self.device}")
         self.action_net = core.NetworkAction()
         checkpoint = torch.load(self.model_weight, map_location=self.device)
         self.action_net.load_state_dict(checkpoint['action_net_state_dict'])
