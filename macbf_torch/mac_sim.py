@@ -241,7 +241,7 @@ class MACSimNode(Node):
         # Compute the next state based on the action
         dsdt = action.cpu().numpy()
         next_state_vector = self.state_matrix[0] + dsdt * config.TIME_STEP
-        self.get_logger().info(f'Computed next state vector: {next_state_vector}')
+        # self.get_logger().info(f'Computed next state vector: {next_state_vector}')
 
         # Update the state matrix with the new state
         self.state_matrix[0] = next_state_vector
