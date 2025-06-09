@@ -130,6 +130,7 @@ class MACSimNode(Node):
     def send_gazebo_state(self):
         request = SetEntityState.Request()
 
+        request.state.name = self.self_agent
         request.state.pose.position.x = self.state.pos.x
         request.state.pose.position.y = self.state.pos.y
         request.state.pose.position.z = self.state.pos.z
