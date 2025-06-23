@@ -44,7 +44,8 @@ class MACSimNode(Node):
         # Initalize callback groups
         # No need because by default, the default callback group is MutuallyExclusiveCallbackGroup
         # Create one for the state publisher to execute in parallel
-        self.me_cb_group = MutuallyExclusiveCallbackGroup()
+        # Update: To avoid race conditions, all callbacks (neighbor state updates, reference state update and self state publishing) are all
+        # to be in the same mutually exclusive callback group. This is done by default.
 
         # Initialize state matrix
         self.state = State()
@@ -77,8 +78,8 @@ class MACSimNode(Node):
         self.state_matrix = np.zeros((len(self.all_agents), 10), dtype=np.float32)
         self.state_matrix[0] = self.current_state_vector
 
-        # Create timer that publishes state at 10Hz, executes in parallel with the other ME callbacks
-        self.timer = self.create_timer(0.1, self.publish_state, callback_group=self.me_cb_group)
+        # Create timer that publishes state at 10Hz
+        self.timer = self.create_timer(0.1, self.publish_state)
 
         # Initialize model
         self.model_weight = (
